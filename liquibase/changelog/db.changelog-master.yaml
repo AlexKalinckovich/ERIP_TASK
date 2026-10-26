@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: 001-create-exchange-rates.sql
+      relativeToChangelogFile: true
+  - include:
+      file: 002-create-deals.sql
+      relativeToChangelogFile: true
