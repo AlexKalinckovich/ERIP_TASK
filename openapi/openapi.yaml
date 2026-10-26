@@ -1,9 +1,511 @@
 openapi: 3.1.0
 info:
-  title: Title
-  description: Title
+  title: Currency Exchange Service API
   version: 1.0.0
-servers:
-  - url: 'https'
+  description: API сервиса обмена валют на основе курсов НБ РБ
 paths:
+  /api/v1/deals:
+    post:
+      tags:
+        - Deals
+      summary: Создание предварительной сделки на обмен валют
+      description: |
+        Рассчитывает параметры обмена на основе текущих курсов НБ РБ.
+      operationId: createDealQuote
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Уникальный ключ идемпотентности запроса (UUID v4)
+        - in: header
+          name: X-Request-ID
+          required: false
+          schema:
+            type: string
+          description: Идентификатор корреляции для сквозного логирования
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDealRequest'
+      responses:
+        '201':
+          description: Предварительная сделка успешно создана
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI созданного ресурса сделки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealQuoteResponse'
+        '400':
+          description: Ошибка бизнес-логики (одинаковые валюты, отсутствие курса)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Конфликт ключа идемпотентности
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных (Pydantic Validation Error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Сервис или База Данных временно недоступны
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/deals/{deal_id}:
+    patch:
+      tags:
+        - Deals
+      summary: Подтверждение или отклонение обмена валют
+      description: |
+        Переводит ранее созданную возможную сделку из статуса PENDING
+        в итоговый статус CONFIRMED или REJECTED.
+      operationId: updateDealStatus
+      parameters:
+        - in: path
+          name: deal_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Уникальный идентификатор возможной сделки
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Уникальный ключ идемпотентности запроса
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDealRequest'
+      responses:
+        '200':
+          description: Результат сделки успешно зафиксирован в системе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealStatusResponse'
+        '400':
+          description: Срок действия предложения истек (Deal Expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Сделка с указанным deal_id не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Конфликт состояния (сделка уже была закрыта ранее)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных (неверный UUID или action)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/deals/pending:
+      get:
+        tags:
+          - Deals
+        summary: Получение списка незавершённых сделок
+        description: |
+          Возвращает список всех активных сделок, находящихся в статусе PENDING.
+        operationId: getPendingDeals
+        parameters:
+          - in: query
+            name: limit
+            required: false
+            schema:
+              type: integer
+              default: 20
+              minimum: 1
+              maximum: 100
+            description: Количество возвращаемых записей (для пагинации)
+          - in: query
+            name: offset
+            required: false
+            schema:
+              type: integer
+              default: 0
+              minimum: 0
+            description: Смещение от начала списка (для пагинации)
+          - in: header
+            name: X-Request-ID
+            required: false
+            schema:
+              type: string
+            description: Идентификатор корреляции для сквозного логирования
+        responses:
+          '200':
+            description: Список незавершённых сделок успешно получен
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PendingDealsResponse'
+          '400':
+            description: Некорректные параметры пагинации
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+          '422':
+            description: Ошибка валидации query-параметров
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ValidationErrorResponse'
+          '500':
+            description: Внутренняя ошибка сервера
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/deals/reports/summary:
+      get:
+        tags:
+          - Reports
+        summary: Получение агрегированного отчёта по сделкам за интервал времени
+        description: |
+          Возвращает сводную статистику движения денежных средств в кассе (сумма полученного, 
+          сумма ушедшего, количество сделок) по каждой валюте за указанный интервал времени.
+        operationId: getDealsSummaryReport
+        parameters:
+          - in: query
+            name: date_from
+            required: true
+            schema:
+              type: string
+              format: date-time
+            example: "2026-10-01T00:00:00Z"
+            description: Начало временного интервала (ISO 8601)
+          - in: query
+            name: date_to
+            required: true
+            schema:
+              type: string
+              format: date-time
+            example: "2026-10-26T23:59:59Z"
+            description: Конец временного интервала (ISO 8601)
+          - in: query
+            name: currency
+            required: false
+            schema:
+              type: string
+              pattern: '^[A-Z]{3}$'
+            example: "USD"
+            description: Необязательный фильтр по конкретной валюте (ISO 4217)
+          - in: header
+            name: X-Request-ID
+            required: false
+            schema:
+              type: string
+            description: Идентификатор корреляции для сквозного логирования
+        responses:
+          '200':
+            description: Агрегированный отчёт успешно сформирован
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/SummaryReportResponse'
+          '400':
+            description: Некорректный интервал дат (date_from > date_to)
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+          '422':
+            description: Ошибка валидации формата дат или валюты
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ValidationErrorResponse'
+          '500':
+            description: Внутренняя ошибка сервера
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    SummaryReportResponse:
+          type: object
+          required:
+            - date_from
+            - date_to
+            - items
+          properties:
+            date_from:
+              type: string
+              format: date-time
+              example: "2026-10-01T00:00:00Z"
+            date_to:
+              type: string
+              format: date-time
+              example: "2026-10-26T23:59:59Z"
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/SummaryReportItem'
 
+    SummaryReportItem:
+      type: object
+      required:
+        - currency
+        - total_received
+        - total_given
+        - deal_count
+      properties:
+        currency:
+          type: string
+          example: "USD"
+          description: Валюта операции
+        total_received:
+          type: number
+          example: 15000.00
+          description: Общая сумма данной валюты, поступившая в кассу
+        total_given:
+          type: number
+          example: 49200.00
+          description: Общая сумма данной валюты, выданная из кассы
+        deal_count:
+          type: integer
+          example: 45
+          description: Количество успешно зафиксированных сделок с данной валютой
+    PendingDealsResponse:
+          type: object
+          required:
+            - total
+            - items
+          properties:
+            total:
+              type: integer
+              example: 2
+              description: Общее количество активных незавершённых сделок
+            limit:
+              type: integer
+              example: 20
+            offset:
+              type: integer
+              example: 0
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PendingDealItem'
+
+    PendingDealItem:
+      type: object
+      required:
+        - deal_id
+        - source_currency
+        - target_currency
+        - source_amount
+        - target_amount
+        - exchange_rate
+        - expires_at
+      properties:
+        deal_id:
+          type: string
+          format: uuid
+          example: "a3b1c2d4-1234-5678-90ab-cdef12345678"
+          description: Идентификатор сделки
+        source_currency:
+          type: string
+          example: "USD"
+          description: Исходная валюта
+        target_currency:
+          type: string
+          example: "BYN"
+          description: Целевая валюта
+        source_amount:
+          type: number
+          example: 100.00
+          description: Исходная сумма
+        target_amount:
+          type: number
+          example: 328.50
+          description: Рассчитанная сумма в целевой валюте
+        exchange_rate:
+          type: number
+          example: 3.2850
+          description: Курс обмена
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-10-26T10:15:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          example: "2026-10-26T10:30:00Z"
+          description: Время окончания срока действия предложения
+    UpdateDealRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [ CONFIRM, REJECT ]
+          example: "CONFIRM"
+          description: Решение по сделке (подтвердить или отклонить)
+
+    DealStatusResponse:
+      type: object
+      required:
+        - deal_id
+        - status
+        - updated_at
+      properties:
+        deal_id:
+          type: string
+          format: uuid
+          example: "a3b1c2d4-1234-5678-90ab-cdef12345678"
+        status:
+          type: string
+          enum: [ CONFIRMED, REJECTED ]
+          example: "CONFIRMED"
+          description: Финальный зафиксированный статус сделки
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-10-26T10:16:30Z"
+    CreateDealRequest:
+      type: object
+      required:
+        - source_currency
+        - target_currency
+        - amount
+      properties:
+        source_currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "USD"
+          description: Исходная валюта (ISO 4217)
+        target_currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "BYN"
+          description: Целевая валюта (ISO 4217)
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 100.00
+          description: Сумма в исходной валюте для обмена
+
+    DealQuoteResponse:
+      type: object
+      required:
+        - deal_id
+        - source_currency
+        - target_currency
+        - source_amount
+        - target_amount
+        - exchange_rate
+        - status
+        - expires_at
+      properties:
+        deal_id:
+          type: string
+          format: uuid
+          example: "a3b1c2d4-1234-5678-90ab-cdef12345678"
+          description: Уникальный идентификатор возможной сделки
+        source_currency:
+          type: string
+          example: "USD"
+        target_currency:
+          type: string
+          example: "BYN"
+        source_amount:
+          type: number
+          example: 100.00
+        target_amount:
+          type: number
+          example: 328.50
+          description: Рассчитанная сумма в целевой валюте
+        exchange_rate:
+          type: number
+          example: 3.2850
+          description: Курс обмена, применённый к сделке
+        status:
+          type: string
+          enum: [PENDING]
+          example: "PENDING"
+          description: Текущий статус возможной сделки
+        expires_at:
+          type: string
+          format: date-time
+          example: "2026-10-26T10:30:00Z"
+          description: Время истечения срока действия предложения
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "SAME_CURRENCY_NOT_ALLOWED"
+        message:
+          type: string
+          example: "Исходная и целевая валюты не могут совпадать."
+        details:
+          type: object
+          nullable: true
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
