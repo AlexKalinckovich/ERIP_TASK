@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+
 class ErrorResponse(BaseModel):
     code: str = Field(
         ...,
@@ -17,6 +18,7 @@ class ErrorResponse(BaseModel):
         default=None,
         description="Опциональные структурированные детали (например, имя поля)",
     )
+
 
 class ValidationErrorItem(BaseModel):
     loc: list[str | int] = Field(
@@ -34,6 +36,7 @@ class ValidationErrorItem(BaseModel):
         description="Идентификатор типа ошибки",
         examples=["greater_than"],
     )
+
 
 class ValidationErrorResponse(BaseModel):
     detail: list[ValidationErrorItem] = Field(

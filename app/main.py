@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.health import router as health_router
 from app.api.router import api_router
+from app.core.exception_handlers import setup_exception_handlers
 
 app = FastAPI(
     title="Currency Exchange Service",
@@ -12,6 +13,8 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+setup_exception_handlers(app)
 
 app.mount("/static-openapi", StaticFiles(directory="openapi"), name="static-openapi")
 

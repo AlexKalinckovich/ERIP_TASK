@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import (
@@ -9,14 +9,24 @@ from pydantic import (
     ConfigDict,
     Field,
     PlainSerializer,
-    model_validator,
 )
+
 
 class DealStatus(StrEnum):
     PENDING = "PENDING"
     CONFIRMED = "CONFIRMED"
     REJECTED = "REJECTED"
     EXPIRED = "EXPIRED"
+
+
+class DealAction(StrEnum):
+    CONFIRM = "CONFIRM"
+    REJECT = "REJECT"
+
+
+class DealFinalStatus(StrEnum):
+    CONFIRMED = "CONFIRMED"
+    REJECTED = "REJECTED"
 
 
 CurrencyCode = Annotated[
@@ -60,13 +70,13 @@ class CreateDealRequest(BaseModel):
         examples=[100.00],
     )
 
-    @model_validator(mode="after")
-    def _validate_currencies_differ(self) -> Self:
-        if self.source_currency == self.target_currency:
-            raise ValueError(
-                "Исходная и целевая валюты не могут совпадать."
-            )
-        return self
+
+class UpdateDealRequest(BaseModel):
+    action: DealAction = Field(
+        ...,
+        description="Решение по сделке (подтвердить или отклонить)",
+        examples=["CONFIRM"],
+    )
 
 
 class DealQuoteResponse(BaseModel):
@@ -101,3 +111,72 @@ class DealQuoteResponse(BaseModel):
         description="Время истечения срока действия предложения",
         examples=["2026-10-26T10:30:00Z"],
     )
+
+
+class DealStatusResponse(BaseModel):
+    deal_id: UUID = Field(
+        ...,
+        examples=["a3b1c2d4-1234-5678-90ab-cdef12345678"],
+    )
+    status: DealFinalStatus = Field(
+        ...,
+        description="Финальный зафиксированный статус сделки",
+        examples=["CONFIRMED"],
+    )
+    updated_at: datetime = Field(
+        ...,
+        examples=["2026-10-26T10:16:30Z"],
+    )
+
+
+class PendingDealItem(BaseModel):
+    deal_id: UUID = Field(
+        ...,
+        description="Идентификатор сделки",
+        examples=["a3b1c2d4-1234-5678-90ab-cdef12345678"],
+    )
+    source_currency: str = Field(
+        ...,
+        description="Исходная валюта",
+        examples=["USD"],
+    )
+    target_currency: str = Field(
+        ...,
+        description="Целевая валюта",
+        examples=["BYN"],
+    )
+    source_amount: MoneyAmount = Field(
+        ...,
+        description="Исходная сумма",
+        examples=[100.00],
+    )
+    target_amount: MoneyAmount = Field(
+        ...,
+        description="Рассчитанная сумма в целевой валюте",
+        examples=[328.50],
+    )
+    exchange_rate: ExchangeRate = Field(
+        ...,
+        description="Курс обмена",
+        examples=[3.2850],
+    )
+    created_at: datetime | None = Field(
+        default=None,
+        examples=["2026-10-26T10:15:00Z"],
+    )
+    expires_at: datetime = Field(
+        ...,
+        description="Время окончания срока действия предложения",
+        examples=["2026-10-26T10:30:00Z"],
+    )
+
+
+class PendingDealsResponse(BaseModel):
+    total: int = Field(
+        ...,
+        description="Общее количество активных незавершённых сделок",
+        examples=[2],
+    )
+    limit: int | None = Field(default=None, examples=[20])
+    offset: int | None = Field(default=None, examples=[0])
+    items: list[PendingDealItem]
