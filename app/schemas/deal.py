@@ -12,8 +12,6 @@ from pydantic import (
     model_validator,
 )
 
-
-
 class DealStatus(StrEnum):
     PENDING = "PENDING"
     CONFIRMED = "CONFIRMED"
