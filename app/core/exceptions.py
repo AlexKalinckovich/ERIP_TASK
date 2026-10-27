@@ -29,5 +29,43 @@ class InvalidUUIDError(Error):
         self.field = field
 
 
+class NBRBClientException(Error):
+    pass
+
+
+class NBRBNetworkException(NBRBClientException):
+    def __init__(self, reason: str) -> None:
+        super().__init__(
+            code="NBRB_NETWORK_ERROR",
+            message="Не удалось выполнить запрос к API НБ РБ.",
+            details={"reason": reason},
+        )
+        self.reason = reason
+
+
+class NBRBAPIException(NBRBClientException):
+    def __init__(self, status_code: int, response_body: str) -> None:
+        super().__init__(
+            code="NBRB_API_ERROR",
+            message=f"API НБ РБ вернул HTTP {status_code}.",
+            details={
+                "status_code": status_code,
+                "response_body": response_body[:500],
+            },
+        )
+        self.status_code = status_code
+        self.response_body = response_body
+
+
+class NBRBResponseValidationException(NBRBClientException):
+    def __init__(self, reason: str) -> None:
+        super().__init__(
+            code="NBRB_RESPONSE_VALIDATION_ERROR",
+            message="Ответ API НБ РБ не соответствует ожидаемой схеме.",
+            details={"reason": reason},
+        )
+        self.reason = reason
+
+
 class ReportValidationError(Error):
     pass
