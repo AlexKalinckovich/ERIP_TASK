@@ -2,21 +2,22 @@ from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 
+from app.api.health import router as health_router
 from app.api.router import api_router
+from app.core.exception_handlers import setup_exception_handlers
 
 app = FastAPI(
     title="Currency Exchange Service",
     version="0.1.0",
-    docs_url=None,       # отключаем встроенный /docs
+    docs_url=None,
     redoc_url=None,
-    openapi_url=None,    # отключаем встроенный /openapi.json
-    openapi_version="3.0.3",
+    openapi_url=None,
 )
 
-# Статика с openapi.yaml/json
+setup_exception_handlers(app)
+
 app.mount("/static-openapi", StaticFiles(directory="openapi"), name="static-openapi")
 
-# Свой Swagger UI со статическим OpenAPI
 @app.get("/swagger-ui", include_in_schema=False)
 async def custom_swagger_ui():
     return get_swagger_ui_html(
@@ -24,4 +25,5 @@ async def custom_swagger_ui():
         title="Currency Exchange Service — Swagger UI",
     )
 
+app.include_router(health_router)
 app.include_router(api_router, prefix="/api/v1")

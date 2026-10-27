@@ -4,13 +4,13 @@ services:
   db:
     image: postgres:16-alpine
     env_file:
-      - .env
+      - .env.test
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -19,13 +19,12 @@ services:
   liquibase:
     image: liquibase/liquibase:4.29
     volumes:
-      - ./liquibase/changelog:/liquibase/changelog:ro
+      - ./liquibase/changelog:/liquibase/changelog
     command: >
-      --url=${LIQUIBASE_URL}
-      --username=${LIQUIBASE_USER}
-      --password=${LIQUIBASE_PASSWORD}
-      --changeLogFile=/liquibase/changelog/db.changelog-master.yaml
       update
+      --changelog-file=db.changelog-master.yaml
+    env_file:
+      - .env.test
     depends_on:
       db:
         condition: service_healthy
@@ -36,7 +35,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.test
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:

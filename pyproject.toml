@@ -32,3 +32,8 @@ openapi-python-client = "^0.29.0"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "unit: fast tests that do not require Docker or PostgreSQL",
+    "integration: endpoint tests backed by a PostgreSQL testcontainer",
+]
