@@ -1,5 +1,4 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import (
     APIRouter,
@@ -22,6 +21,7 @@ from app.schemas.deal import (
     UpdateDealRequest,
 )
 from app.schemas.errors import ErrorResponse, ValidationErrorResponse
+from app.services.common_validator import parse_uuid_or_raise
 from app.services.deal_service import DealService
 
 router = APIRouter(prefix="/deals")
@@ -201,13 +201,7 @@ async def update_deal_status(
             detail="Request body is required",
         )
 
-    try:
-        deal_id_value = UUID(deal_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Invalid deal_id",
-        ) from None
+    deal_id_value = parse_uuid_or_raise(deal_id, field="deal_id")
 
     return await service.update_deal_status(
         deal_id=deal_id_value,
