@@ -13,6 +13,7 @@ from app.schemas.errors import (
     ValidationErrorResponse,
 )
 
+
 def _error_response(status_code: int, exc: Error) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
