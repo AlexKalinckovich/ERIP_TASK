@@ -5,6 +5,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
+import logging.config
+from app.core.logging import LOG_CONFIG
 
 from app.api.health import router as health_router
 from app.api.router import api_router
@@ -55,7 +57,7 @@ app = FastAPI(
 
 
 setup_exception_handlers(app)
-
+logging.config.dictConfig(LOG_CONFIG)
 app.mount("/static-openapi", StaticFiles(directory="openapi"), name="static-openapi")
 
 
