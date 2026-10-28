@@ -16,6 +16,7 @@ from app.core.exceptions import (
 from app.db.models.deal import Deal
 from app.db.models.deal_status_idempotency import DealStatusIdempotency
 from app.db.models.rate import ExchangeRate
+from app.mapper.deal_mapper import map_deal_to_pending_item
 from app.repositories.deal import DealRepository
 from app.repositories.exchange_rate import ExchangeRateRepository
 from app.schemas.deal import (
@@ -27,6 +28,7 @@ from app.schemas.deal import (
     DealStatusResponse,
     PendingDealsResponse,
     UpdateDealRequest,
+    PendingDealItem
 )
 from app.services.deal_validator import DealValidator
 
@@ -91,7 +93,6 @@ class DealService:
                 source_amount=request.amount,
                 target_amount=min(target_amount, _MAX_AMOUNT),
                 exchange_rate=exchange_rate,
-                expires_at=now + timedelta(minutes=self._settings.ttl_minutes),
                 idempotency_key=idempotency_key,
             )
             await self._deal_repository.commit()
@@ -214,11 +215,15 @@ class DealService:
         limit: int,
         offset: int,
     ) -> PendingDealsResponse:
+        deals = await self._deal_repository.get_pending_deals(limit, offset)
+
+        pending_items = [map_deal_to_pending_item(deal) for deal in deals]
+
         return PendingDealsResponse(
-            total=0,
+            total=len(pending_items),
             limit=limit,
             offset=offset,
-            items=[],
+            items= pending_items,
         )
 
     async def update_deal_status(
@@ -238,6 +243,7 @@ class DealService:
             existing_idempotency = await self._deal_repository.get_status_idempotency(
                 idempotency_key,
             )
+
             if existing_idempotency is not None:
                 return self._resolve_status_idempotent_or_raise(
                     record=existing_idempotency,
@@ -272,7 +278,6 @@ class DealService:
                 deal_id=deal_id,
                 action=request.action,
                 idempotency_key=idempotency_key,
-                now=now,
             )
         except IntegrityError:
             await self._deal_repository.rollback()
@@ -296,7 +301,6 @@ class DealService:
         deal_id: UUID,
         action: DealAction,
         idempotency_key: UUID | None,
-        now: datetime,
     ) -> DealStatusResponse:
         existing_deal = await self._deal_repository.get_by_id(deal_id)
 
@@ -315,13 +319,7 @@ class DealService:
                     idempotency_key=idempotency_key,
                 )
 
-        if existing_deal.expires_at <= now:
-            expired_deal = await self._deal_repository.mark_expired(
-                deal_id=deal_id,
-                now=now,
-            )
-            if expired_deal is not None:
-                await self._deal_repository.commit()
+        if existing_deal.status == DealStatus.EXPIRED.value:
             raise DealExpiredError(deal_id=deal_id)
 
         if existing_deal.status != DealStatus.PENDING.value:

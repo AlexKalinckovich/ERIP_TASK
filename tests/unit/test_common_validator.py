@@ -1,5 +1,3 @@
-"""Tests for the common UUID parsing helper."""
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 

@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -10,6 +10,12 @@ NBRBRateValue = Annotated[
     Decimal,
     Field(gt=0, max_digits=12, decimal_places=4),
 ]
+
+class RateRow(TypedDict):
+    rate_date: date
+    currency_code: str
+    scale: int
+    official_rate: Decimal
 
 
 class NBRBRate(BaseModel):

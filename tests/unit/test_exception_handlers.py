@@ -1,5 +1,3 @@
-"""API-level test for the DealValidationError exception handler."""
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 

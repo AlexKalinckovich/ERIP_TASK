@@ -11,7 +11,6 @@ CREATE TABLE deals (
     exchange_rate   NUMERIC(12, 4) NOT NULL,
     status          VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT ck_deals_source_amount_positive CHECK (source_amount > 0),

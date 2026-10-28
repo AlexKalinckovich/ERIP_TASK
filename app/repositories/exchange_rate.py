@@ -1,20 +1,12 @@
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
-from decimal import Decimal
-from typing import TypedDict
 
 from sqlalchemy import exists, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.rate import ExchangeRate
-
-
-class RateRow(TypedDict):
-    rate_date: date
-    currency_code: str
-    scale: int
-    official_rate: Decimal
+from app.schemas.nbrb import RateRow
 
 
 class ExchangeRateRepository:

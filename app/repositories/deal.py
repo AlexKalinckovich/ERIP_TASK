@@ -1,18 +1,63 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select, update, union_all, literal, cast, Numeric
 
 from app.db.models.deal import Deal
 from app.db.models.deal_status_idempotency import DealStatusIdempotency
+from app.mapper.report_mapper import map_db_row_to_summary_report_item
 from app.schemas.deal import DealStatus
+from app.schemas.report import SummaryReportItem
 
 
 class DealRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def get_summary_report(
+            self,
+            date_from: datetime,
+            date_to: datetime,
+            currency: str | None = None,
+    ) -> Sequence[SummaryReportItem]:
+        sql_query = text("""
+            SELECT currency, total_received, total_given, deal_count
+            FROM get_deal_summary_report(:date_from, :date_to, :currency)
+        """)
+
+        result = await self._session.execute(
+            sql_query,
+            {
+                "date_from": date_from,
+                "date_to": date_to,
+                "currency": currency.upper() if currency else None,
+            }
+        )
+
+        rows = result.mappings().all()
+
+        return [map_db_row_to_summary_report_item(row) for row in rows]
+
+    async def get_pending_deals(self, limit: int, offset: int) -> Sequence[Deal]:
+        stmt = (
+            select(Deal)
+            .where(
+                Deal.status == DealStatus.PENDING.value,
+            )
+            .order_by(Deal.created_at)
+            .limit(limit)
+            .offset(offset)
+        )
+
+        result = await self._session.execute(stmt)
+
+        deals = result.scalars().all()
+
+        return deals
 
     async def get_by_idempotency_key(
         self,
@@ -24,7 +69,9 @@ class DealRepository:
 
     async def get_by_id(self, deal_id: UUID) -> Deal | None:
         stmt = select(Deal).where(Deal.deal_id == deal_id)
+
         result = await self._session.execute(stmt)
+
         return result.scalar_one_or_none()
 
     async def get_status_idempotency(
@@ -66,8 +113,7 @@ class DealRepository:
         source_amount: Decimal,
         target_amount: Decimal,
         exchange_rate: Decimal,
-        expires_at: datetime,
-        idempotency_key: UUID | None = None,
+            idempotency_key: UUID | None = None,
     ) -> Deal:
         deal = Deal(
             deal_id=deal_id,
@@ -76,8 +122,7 @@ class DealRepository:
             source_amount=source_amount,
             target_amount=target_amount,
             exchange_rate=exchange_rate,
-            status="PENDING",
-            expires_at=expires_at,
+            status=DealStatus.PENDING,
             idempotency_key=idempotency_key,
         )
         self._session.add(deal)
@@ -96,32 +141,9 @@ class DealRepository:
             .where(
                 Deal.deal_id == deal_id,
                 Deal.status == DealStatus.PENDING.value,
-                Deal.expires_at > now,
             )
             .values(
                 status=new_status.value,
-                updated_at=now,
-            )
-            .execution_options(synchronize_session=False)
-            .returning(Deal)
-        )
-        result = await self._session.execute(stmt)
-        return result.scalar_one_or_none()
-
-    async def mark_expired(
-        self,
-        deal_id: UUID,
-        now: datetime,
-    ) -> Deal | None:
-        stmt = (
-            update(Deal)
-            .where(
-                Deal.deal_id == deal_id,
-                Deal.status == DealStatus.PENDING.value,
-                Deal.expires_at <= now,
-            )
-            .values(
-                status=DealStatus.EXPIRED.value,
                 updated_at=now,
             )
             .execution_options(synchronize_session=False)
@@ -134,8 +156,7 @@ class DealRepository:
         stmt = (
             update(Deal)
             .where(
-                Deal.status == DealStatus.PENDING.value,
-                Deal.expires_at <= func.now(),
+                Deal.status == DealStatus.PENDING.value
             )
             .values(
                 status=DealStatus.EXPIRED.value,

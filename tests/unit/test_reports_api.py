@@ -1,5 +1,3 @@
-"""API-level tests for the deals summary report stub."""
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 

@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.background.bank_client import NBRBClientAdapter
+from app.mapper.nbrb_client_mapper import map_nbrb_rate_to_rate_row
 from app.repositories.deal import DealRepository
 from app.repositories.exchange_rate import ExchangeRateRepository, RateRow
 
@@ -34,17 +35,9 @@ class CurrencySyncService:
                         today,
                     )
                 else:
-                    rates = await self._adapter.get_rates(periodicity=0)
-                    if rates:
-                        formatted_rates: list[RateRow] = [
-                            {
-                                "rate_date": rate.date.date(),
-                                "currency_code": rate.cur_abbreviation,
-                                "scale": rate.cur_scale,
-                                "official_rate": rate.cur_official_rate,
-                            }
-                            for rate in rates
-                        ]
+                    nbrb_rates = await self._adapter.get_rates(periodicity=0)
+                    if nbrb_rates:
+                        formatted_rates: list[RateRow] = [map_nbrb_rate_to_rate_row(nbrb_rate) for nbrb_rate in nbrb_rates]
                         await rate_repository.upsert_rates(formatted_rates)
                         logger.info(
                             "Сохранено %s курсов валют.",

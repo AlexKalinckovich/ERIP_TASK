@@ -121,5 +121,6 @@ def get_report_validator() -> ReportValidator:
 
 def get_report_service(
     validator: Annotated[ReportValidator, Depends(get_report_validator)],
+    deal_repository: DealRepositoryDep,
 ) -> ReportService:
-    return ReportService(validator=validator)
+    return ReportService(validator=validator, deal_repository=deal_repository)

@@ -368,7 +368,6 @@ components:
         items:
         - source_currency: USD
           target_amount: 328.5
-          expires_at: 2026-10-26T10:30:00Z
           exchange_rate: 3.285
           target_currency: BYN
           source_amount: 100.0
@@ -376,7 +375,6 @@ components:
           deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
         - source_currency: USD
           target_amount: 328.5
-          expires_at: 2026-10-26T10:30:00Z
           exchange_rate: 3.285
           target_currency: BYN
           source_amount: 100.0
@@ -410,7 +408,6 @@ components:
       example:
         source_currency: USD
         target_amount: 328.5
-        expires_at: 2026-10-26T10:30:00Z
         exchange_rate: 3.285
         target_currency: BYN
         source_amount: 100.0
@@ -453,16 +450,9 @@ components:
           format: date-time
           title: created_at
           type: string
-        expires_at:
-          description: Время окончания срока действия предложения
-          example: 2026-10-26T10:30:00Z
-          format: date-time
-          title: expires_at
-          type: string
       required:
       - deal_id
       - exchange_rate
-      - expires_at
       - source_amount
       - source_currency
       - target_amount
@@ -550,7 +540,6 @@ components:
       example:
         source_currency: USD
         target_amount: 328.5
-        expires_at: 2026-10-26T10:30:00Z
         exchange_rate: 3.285
         target_currency: BYN
         source_amount: 100.0
@@ -592,16 +581,9 @@ components:
           example: PENDING
           title: status
           type: string
-        expires_at:
-          description: Время истечения срока действия предложения
-          example: 2026-10-26T10:30:00Z
-          format: date-time
-          title: expires_at
-          type: string
       required:
       - deal_id
       - exchange_rate
-      - expires_at
       - source_amount
       - source_currency
       - status
