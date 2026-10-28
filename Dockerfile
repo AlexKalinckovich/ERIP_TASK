@@ -29,11 +29,12 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    curl && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd --system --gid 10001 appgroup && \
-    useradd --system --uid 10001 --gid appgroup --shell /usr/sbin/nologin appuser && \
-    mkdir -p /app && chown -R appuser:appgroup /app
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 appgroup \
+    && useradd --system --uid 10001 --gid appgroup --shell /usr/sbin/nologin appuser \
+    && mkdir -p /app \
+    && chown -R appuser:appgroup /app
 
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 COPY --chown=appuser:appgroup ./app /app/app
