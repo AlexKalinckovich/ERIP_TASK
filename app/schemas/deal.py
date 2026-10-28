@@ -106,11 +106,6 @@ class DealQuoteResponse(BaseModel):
         description="Текущий статус возможной сделки",
         examples=[DealStatus.PENDING],
     )
-    expires_at: datetime = Field(
-        ...,
-        description="Время истечения срока действия предложения",
-        examples=["2026-10-26T10:30:00Z"],
-    )
 
 
 class DealStatusResponse(BaseModel):
@@ -163,11 +158,6 @@ class PendingDealItem(BaseModel):
     created_at: datetime | None = Field(
         default=None,
         examples=["2026-10-26T10:15:00Z"],
-    )
-    expires_at: datetime = Field(
-        ...,
-        description="Время окончания срока действия предложения",
-        examples=["2026-10-26T10:30:00Z"],
     )
 
 
