@@ -49,20 +49,3 @@ class DatabaseSettings(BaseSettings):
 @lru_cache
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings()
-
-
-class DealSettings(BaseSettings):
-    ttl_minutes: int = Field(default=15, gt=0)
-
-    model_config = SettingsConfigDict(
-        env_prefix="DEAL_",
-        env_file=_default_env_file(),
-        env_file_encoding="utf-8",
-        extra="ignore",
-        validate_default=True,
-    )
-
-
-@lru_cache
-def get_deal_settings() -> DealSettings:
-    return DealSettings()

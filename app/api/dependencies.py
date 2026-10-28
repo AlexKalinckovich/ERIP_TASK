@@ -5,7 +5,7 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.background.bank_client import NBRBClient, NBRBClientAdapter
-from app.config import DealSettings, NBRBSettings, get_deal_settings
+from app.config import NBRBSettings
 from app.core.database import get_db
 from app.repositories.deal import DealRepository
 from app.repositories.exchange_rate import ExchangeRateRepository
@@ -17,7 +17,6 @@ from app.services.report_service import ReportService
 from app.services.report_validator import ReportValidator
 
 DatabaseSessionDep = Annotated[AsyncSession, Depends(get_db)]
-DealSettingsDep = Annotated[DealSettings, Depends(get_deal_settings)]
 
 
 def get_idempotency_key(
@@ -105,13 +104,11 @@ def get_deal_service(
     validator: Annotated[DealValidator, Depends(get_deal_validator)],
     rate_repository: ExchangeRateRepositoryDep,
     deal_repository: DealRepositoryDep,
-    settings: DealSettingsDep,
 ) -> DealService:
     return DealService(
         validator=validator,
         rate_repository=rate_repository,
         deal_repository=deal_repository,
-        settings=settings,
     )
 
 
