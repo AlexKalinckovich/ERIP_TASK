@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID, uuid4
@@ -33,7 +34,9 @@ from app.services.deal_validator import DealValidator
 _BYN = "BYN"
 _RATE_QUANTUM = Decimal("0.0001")
 _AMOUNT_QUANTUM = Decimal("0.01")
-_MAX_AMOUNT = Decimal("9999999999999.99")
+_MAX_AMOUNT = Decimal("100000.00")
+
+logger = logging.getLogger(__name__)
 
 
 class DealService:
@@ -93,6 +96,7 @@ class DealService:
             )
             await self._deal_repository.commit()
         except IntegrityError:
+            logger.warning("integrity_error_during_creation", exc_info=True)
             await self._deal_repository.rollback()
             if idempotency_key is None:
                 raise
@@ -269,13 +273,14 @@ class DealService:
                     status=target_status,
                     updated_at=updated_deal.updated_at,
                 )
-
+            logger.warning("deal_status_update_failed_no_rows_updated")
             return await self._diagnose_status_update_failure(
                 deal_id=deal_id,
                 action=request.action,
                 idempotency_key=idempotency_key,
             )
         except IntegrityError:
+            logger.warning("integrity_error_during_status_update", exc_info=True)
             await self._deal_repository.rollback()
             if idempotency_key is None:
                 raise
@@ -293,7 +298,6 @@ class DealService:
 
     async def _diagnose_status_update_failure(
         self,
-        *,
         deal_id: UUID,
         action: DealAction,
         idempotency_key: UUID | None,
