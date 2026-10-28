@@ -5,3 +5,9 @@ databaseChangeLog:
   - include:
       file: 002-create-deals.sql
       relativeToChangelogFile: true
+  - include:
+      file: 003-add-deals-idempotency-key.sql
+      relativeToChangelogFile: true
+  - include:
+      file: 004-create-deal-status-idempotency.sql
+      relativeToChangelogFile: true

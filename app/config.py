@@ -1,7 +1,7 @@
 import os
 from functools import lru_cache
 
-from pydantic import Field, HttpUrl
+from pydantic import Field, HttpUrl, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,3 +29,40 @@ class NBRBSettings(BaseSettings):
 @lru_cache
 def get_nbrb_settings() -> NBRBSettings:
     return NBRBSettings()
+
+
+class DatabaseSettings(BaseSettings):
+    database_url: PostgresDsn
+    db_echo: bool = False
+    db_pool_pre_ping: bool = True
+    db_pool_size: int = Field(default=10, gt=0)
+    db_max_overflow: int = Field(default=20, ge=0)
+
+    model_config = SettingsConfigDict(
+        env_file=_default_env_file(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        validate_default=True,
+    )
+
+
+@lru_cache
+def get_database_settings() -> DatabaseSettings:
+    return DatabaseSettings()
+
+
+class DealSettings(BaseSettings):
+    ttl_minutes: int = Field(default=15, gt=0)
+
+    model_config = SettingsConfigDict(
+        env_prefix="DEAL_",
+        env_file=_default_env_file(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        validate_default=True,
+    )
+
+
+@lru_cache
+def get_deal_settings() -> DealSettings:
+    return DealSettings()

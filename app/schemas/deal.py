@@ -86,7 +86,7 @@ class DealQuoteResponse(BaseModel):
     deal_id: UUID = Field(
         ...,
         description="Уникальный идентификатор возможной сделки",
-        examples=["a3b1c2d4-1234-5678-90ab-cdef12345678"],
+        examples=["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
     )
     source_currency: str = Field(..., examples=["USD"])
     target_currency: str = Field(..., examples=["BYN"])
@@ -116,7 +116,7 @@ class DealQuoteResponse(BaseModel):
 class DealStatusResponse(BaseModel):
     deal_id: UUID = Field(
         ...,
-        examples=["a3b1c2d4-1234-5678-90ab-cdef12345678"],
+        examples=["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
     )
     status: DealFinalStatus = Field(
         ...,
@@ -133,7 +133,7 @@ class PendingDealItem(BaseModel):
     deal_id: UUID = Field(
         ...,
         description="Идентификатор сделки",
-        examples=["a3b1c2d4-1234-5678-90ab-cdef12345678"],
+        examples=["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
     )
     source_currency: str = Field(
         ...,

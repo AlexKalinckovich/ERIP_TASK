@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 
-from app.api.dependencies import get_deal_service
+from app.api.dependencies import IdempotencyKeyDep, get_deal_service
 from app.schemas.deal import (
     CreateDealRequest,
     DealQuoteResponse,
@@ -66,14 +66,11 @@ DealServiceDep = Annotated[DealService, Depends(get_deal_service)]
 async def create_deal_quote(
     response: Response,
     service: DealServiceDep,
+    idempotency_key: IdempotencyKeyDep,
     create_deal_request: Annotated[
         CreateDealRequest | None,
         Body(description=""),
     ] = None,
-    idempotency_key: str = Header(
-        None,
-        description="Уникальный ключ идемпотентности запроса (UUID v4)",
-    ),
     x_request_id: str = Header(
         None,
         description="Идентификатор корреляции для сквозного логирования",
@@ -85,7 +82,10 @@ async def create_deal_quote(
             detail="Request body is required",
         )
 
-    quote = await service.create_deal(request=create_deal_request)
+    quote = await service.create_deal(
+        request=create_deal_request,
+        idempotency_key=idempotency_key,
+    )
 
     response.headers["Location"] = f"/api/v1/deals/{quote.deal_id}"
 
@@ -164,7 +164,7 @@ async def get_pending_deals(
         },
         409: {
             "model": ErrorResponse,
-            "description": "Конфликт состояния (сделка уже была закрыта ранее)",
+            "description": "Конфликт состояния сделки или ключа идемпотентности",
         },
         422: {
             "model": ValidationErrorResponse,
@@ -182,6 +182,7 @@ async def get_pending_deals(
 )
 async def update_deal_status(
     service: DealServiceDep,
+    idempotency_key: IdempotencyKeyDep,
     deal_id: str = Path(
         ...,
         description="Уникальный идентификатор возможной сделки",
@@ -190,10 +191,6 @@ async def update_deal_status(
         UpdateDealRequest | None,
         Body(description=""),
     ] = None,
-    idempotency_key: str = Header(
-        None,
-        description="Уникальный ключ идемпотентности запроса",
-    ),
 ) -> DealStatusResponse:
     if update_deal_request is None:
         raise HTTPException(
@@ -201,9 +198,14 @@ async def update_deal_status(
             detail="Request body is required",
         )
 
-    deal_id_value = parse_uuid_or_raise(deal_id, field="deal_id")
+    deal_id_value = parse_uuid_or_raise(
+        deal_id,
+        field="deal_id",
+        version=4,
+    )
 
     return await service.update_deal_status(
         deal_id=deal_id_value,
         request=update_deal_request,
+        idempotency_key=idempotency_key,
     )
