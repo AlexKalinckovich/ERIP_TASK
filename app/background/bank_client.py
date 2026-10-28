@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import random
-import re
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Mapping
 from types import TracebackType
-from typing import Self, TypeVar
+from typing import Self
 
 import httpx
 from pydantic import TypeAdapter
@@ -18,6 +19,8 @@ from app.core.exceptions import (
 )
 from app.schemas.nbrb import NBRBCurrency, NBRBRate
 
+logger = logging.getLogger(__name__)
+
 
 class NBRBClientAdapter:
     def __init__(self, client: NBRBClient) -> None:
@@ -26,19 +29,18 @@ class NBRBClientAdapter:
     async def get_rates(self, periodicity: int = 0) -> list[NBRBRate]:
         try:
             return await self._client.get_rates(periodicity)
-        except NBRBClientException:
+        except NBRBClientException as exc:
+            logger.warning("NBRB get_rates failed: %s", exc.message)
             return []
 
     async def get_rate(self, cur_code: str) -> NBRBRate:
-        try:
-            return await self._client.get_rate(cur_code)
-        except NBRBClientException as exc:
-            raise exc
+        return await self._client.get_rate(cur_code)
 
     async def get_currencies(self) -> list[NBRBCurrency]:
         try:
             return await self._client.get_currencies()
-        except NBRBClientException:
+        except NBRBClientException as exc:
+            logger.warning("NBRB get_currencies failed: %s", exc.message)
             return []
 
     async def __aenter__(self) -> Self:
@@ -55,6 +57,7 @@ class NBRBClientAdapter:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
 
 class NBRBClient:
     _RETRY_STATUS_CODES = frozenset({408, 429, 500, 502, 503, 504})
@@ -163,6 +166,3 @@ class NBRBClient:
         exponential_delay = self.config.retry_backoff * (2**attempt)
         jitter = random.uniform(0, self.config.retry_jitter * (2**attempt))
         return exponential_delay + jitter
-
-
-

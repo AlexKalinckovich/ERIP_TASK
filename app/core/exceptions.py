@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Any
+from uuid import UUID
 
 
 class Error(Exception, ABC):
@@ -19,14 +20,70 @@ class DealValidationError(Error):
     pass
 
 
+class IdempotencyConflictError(Error):
+    def __init__(self, idempotency_key: UUID, deal_id: UUID) -> None:
+        super().__init__(
+            code="IDEMPOTENCY_KEY_CONFLICT",
+            message="Ключ идемпотентности уже использован для другого запроса.",
+            details={
+                "idempotency_key": str(idempotency_key),
+                "deal_id": str(deal_id),
+            },
+        )
+
+
+class DealNotFoundError(Error):
+    def __init__(self, deal_id: UUID) -> None:
+        super().__init__(
+            code="DEAL_NOT_FOUND",
+            message="Сделка с указанным идентификатором не найдена.",
+            details={"deal_id": str(deal_id)},
+        )
+
+
+class DealExpiredError(Error):
+    def __init__(self, deal_id: UUID) -> None:
+        super().__init__(
+            code="DEAL_EXPIRED",
+            message="Срок действия предложения истек.",
+            details={"deal_id": str(deal_id)},
+        )
+
+
+class DealStateConflictError(Error):
+    def __init__(self, deal_id: UUID, status: str) -> None:
+        super().__init__(
+            code="DEAL_STATE_CONFLICT",
+            message="Сделка уже находится в терминальном статусе.",
+            details={"deal_id": str(deal_id), "status": status},
+        )
+
+
+class DealProcessingError(Error):
+    def __init__(self, deal_id: UUID) -> None:
+        super().__init__(
+            code="DEAL_PROCESSING_ERROR",
+            message="Не удалось обновить статус сделки.",
+            details={"deal_id": str(deal_id)},
+        )
+
+
 class InvalidUUIDError(Error):
-    def __init__(self, field: str = "id") -> None:
+    def __init__(
+        self,
+        field: str = "id",
+        message: str = "Некорректный UUID.",
+        location: str = "path",
+        error_type: str = "uuid_parsing",
+    ) -> None:
         super().__init__(
             code="INVALID_UUID",
-            message="Некорректный UUID.",
+            message=message,
             details={"field": field},
         )
         self.field = field
+        self.location = location
+        self.error_type = error_type
 
 
 class NBRBClientException(Error):

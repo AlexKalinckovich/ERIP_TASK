@@ -98,7 +98,7 @@ paths:
           format: uuid
           type: string
         style: simple
-      - description: Уникальный ключ идемпотентности запроса
+      - description: Уникальный ключ идемпотентности запроса (UUID v4)
         explode: false
         in: header
         name: Idempotency-Key
@@ -137,7 +137,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-          description: Конфликт состояния (сделка уже была закрыта ранее)
+          description: Конфликт состояния сделки или ключа идемпотентности
         "422":
           content:
             application/json:
@@ -373,7 +373,7 @@ components:
           target_currency: BYN
           source_amount: 100.0
           created_at: 2026-10-26T10:15:00Z
-          deal_id: a3b1c2d4-1234-5678-90ab-cdef12345678
+          deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
         - source_currency: USD
           target_amount: 328.5
           expires_at: 2026-10-26T10:30:00Z
@@ -381,7 +381,7 @@ components:
           target_currency: BYN
           source_amount: 100.0
           created_at: 2026-10-26T10:15:00Z
-          deal_id: a3b1c2d4-1234-5678-90ab-cdef12345678
+          deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
       properties:
         total:
           description: Общее количество активных незавершённых сделок
@@ -415,11 +415,11 @@ components:
         target_currency: BYN
         source_amount: 100.0
         created_at: 2026-10-26T10:15:00Z
-        deal_id: a3b1c2d4-1234-5678-90ab-cdef12345678
+        deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
       properties:
         deal_id:
           description: Идентификатор сделки
-          example: a3b1c2d4-1234-5678-90ab-cdef12345678
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
           format: uuid
           title: deal_id
           type: string
@@ -488,11 +488,11 @@ components:
     DealStatusResponse:
       example:
         updated_at: 2026-10-26T10:16:30Z
-        deal_id: a3b1c2d4-1234-5678-90ab-cdef12345678
+        deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
         status: CONFIRMED
       properties:
         deal_id:
-          example: a3b1c2d4-1234-5678-90ab-cdef12345678
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
           format: uuid
           title: deal_id
           type: string
@@ -554,12 +554,12 @@ components:
         exchange_rate: 3.285
         target_currency: BYN
         source_amount: 100.0
-        deal_id: a3b1c2d4-1234-5678-90ab-cdef12345678
+        deal_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
         status: PENDING
       properties:
         deal_id:
           description: Уникальный идентификатор возможной сделки
-          example: a3b1c2d4-1234-5678-90ab-cdef12345678
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
           format: uuid
           title: deal_id
           type: string
