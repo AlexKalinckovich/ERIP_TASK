@@ -1,6 +1,5 @@
 from datetime import date, datetime
 from decimal import Decimal
-
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -16,7 +15,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
 
 class ExchangeRate(Base):
     __tablename__ = "exchange_rates"

@@ -86,7 +86,6 @@ class DealRepository:
 
     async def create_status_idempotency(
         self,
-        *,
         idempotency_key: UUID,
         deal_id: UUID,
         action: str,
@@ -106,7 +105,6 @@ class DealRepository:
 
     async def create_deal(
         self,
-        *,
         deal_id: UUID,
         source_currency: str,
         target_currency: str,

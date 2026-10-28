@@ -1,10 +1,9 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy.exc import IntegrityError
 
-from app.config import DealSettings
 from app.core.exceptions import (
     DealExpiredError,
     DealNotFoundError,
@@ -27,8 +26,7 @@ from app.schemas.deal import (
     DealStatus,
     DealStatusResponse,
     PendingDealsResponse,
-    UpdateDealRequest,
-    PendingDealItem
+    UpdateDealRequest
 )
 from app.services.deal_validator import DealValidator
 
@@ -44,12 +42,10 @@ class DealService:
         validator: DealValidator,
         rate_repository: ExchangeRateRepository,
         deal_repository: DealRepository,
-        settings: DealSettings,
     ) -> None:
         self._validator = validator
         self._rate_repository = rate_repository
         self._deal_repository = deal_repository
-        self._settings = settings
 
     async def create_deal(
         self,

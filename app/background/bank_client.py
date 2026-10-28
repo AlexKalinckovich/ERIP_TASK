@@ -77,20 +77,6 @@ class NBRBClient:
             transport=transport,
         )
 
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        await self.aclose()
-
-    async def aclose(self) -> None:
-        await self._client.aclose()
-
     async def get_rates(self, periodicity: int = 0) -> list[NBRBRate]:
         response = await self._request(
             "GET",
@@ -124,7 +110,6 @@ class NBRBClient:
         self,
         method: str,
         url: str,
-        *,
         params: Mapping[str, int | str] | None = None,
     ) -> httpx.Response:
         last_error: NBRBClientException | None = None
@@ -161,6 +146,20 @@ class NBRBClient:
         raise last_error or NBRBNetworkException(
             "Превышено количество попыток запроса к API НБ РБ.",
         )
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
     def _retry_delay(self, attempt: int) -> float:
         exponential_delay = self.config.retry_backoff * (2**attempt)
