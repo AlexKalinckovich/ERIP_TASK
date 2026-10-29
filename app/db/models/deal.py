@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Enum,
     Index,
     Numeric,
     String,
@@ -33,14 +34,10 @@ class Deal(Base):
             "source_currency <> target_currency",
             name="ck_deals_currencies_different",
         ),
-        CheckConstraint(
-            "status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'EXPIRED')",
-            name="ck_deals_status_valid",
-        ),
         Index(
             "idx_deals_pending_active",
             desc("created_at"),
-            postgresql_where=text("status = 'PENDING'"),
+            postgresql_where=text("status = 'PENDING'::deal_status_enum"),
         ),
         Index(
             "idx_deals_summary_report",
@@ -64,20 +61,18 @@ class Deal(Base):
     deal_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     source_currency: Mapped[str] = mapped_column(String(3), nullable=False)
     target_currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    source_amount: Mapped[Decimal] = mapped_column(
-        Numeric(15, 2),
-        nullable=False,
-    )
-    target_amount: Mapped[Decimal] = mapped_column(
-        Numeric(15, 2),
-        nullable=False,
-    )
-    exchange_rate: Mapped[Decimal] = mapped_column(
-        Numeric(12, 4),
-        nullable=False,
-    )
+    source_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    exchange_rate: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
     status: Mapped[str] = mapped_column(
-        String(20),
+        Enum(
+            "PENDING",
+            "CONFIRMED",
+            "REJECTED",
+            "EXPIRED",
+            name="deal_status_enum",
+            create_type=False,
+        ),
         nullable=False,
         server_default="PENDING",
     )

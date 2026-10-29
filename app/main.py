@@ -64,7 +64,7 @@ app.mount("/static-openapi", StaticFiles(directory="openapi"), name="static-open
 @app.get("/swagger-ui", include_in_schema=False)
 async def custom_swagger_ui():
     return get_swagger_ui_html(
-        openapi_url="/static-openapi/openapi.json",
+        openapi_url="/static-openapi/openapi.yaml",
         title="Currency Exchange Service — Swagger UI",
     )
 

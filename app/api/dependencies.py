@@ -30,75 +30,61 @@ def get_idempotency_key(
 ) -> UUID | None:
     if idempotency_key is None:
         return None
-
-    value = parse_uuid_or_raise(
+    return parse_uuid_or_raise(
         idempotency_key,
         field="Idempotency-Key",
         location="header",
         version=4,
     )
 
-    return value
-
-
 IdempotencyKeyDep = Annotated[UUID | None, Depends(get_idempotency_key)]
 
+def get_x_request_id(
+    x_request_id: Annotated[
+        str | None,
+        Header(
+            alias="X-Request-Id",
+            description="Идентификатор корреляции для сквозного логирования",
+        ),
+    ] = None,
+) -> str | None:
+    return x_request_id
+
+XRequestIdDep = Annotated[str | None, Depends(get_x_request_id)]
 
 def get_nbrb_settings(request: Request) -> NBRBSettings:
     return request.app.state.nbrb_settings
 
-
 def get_nbrb_client(request: Request) -> NBRBClient:
     return request.app.state.nbrb_client
-
 
 def get_nbrb_adapter(request: Request) -> NBRBClientAdapter:
     return request.app.state.nbrb_adapter
 
-
 NBRBSettingsDep = Annotated[NBRBSettings, Depends(get_nbrb_settings)]
 NBRBClientDep = Annotated[NBRBClient, Depends(get_nbrb_client)]
-NBRBClientAdapterDep = Annotated[
-    NBRBClientAdapter,
-    Depends(get_nbrb_adapter),
-]
-
+NBRBClientAdapterDep = Annotated[NBRBClientAdapter, Depends(get_nbrb_adapter)]
 
 def get_currency_sync_service(request: Request) -> CurrencySyncService:
     return request.app.state.currency_sync_service
 
+CurrencySyncServiceDep = Annotated[CurrencySyncService, Depends(get_currency_sync_service)]
 
-CurrencySyncServiceDep = Annotated[
-    CurrencySyncService,
-    Depends(get_currency_sync_service),
-]
-
-
-def get_exchange_rate_repository(
-    session: DatabaseSessionDep,
-) -> ExchangeRateRepository:
+def get_exchange_rate_repository(session: DatabaseSessionDep) -> ExchangeRateRepository:
     return ExchangeRateRepository(session)
 
-
-def get_deal_repository(
-    session: DatabaseSessionDep,
-) -> DealRepository:
+def get_deal_repository(session: DatabaseSessionDep) -> DealRepository:
     return DealRepository(session)
 
-
-ExchangeRateRepositoryDep = Annotated[
-    ExchangeRateRepository,
-    Depends(get_exchange_rate_repository),
-]
-DealRepositoryDep = Annotated[
-    DealRepository,
-    Depends(get_deal_repository),
-]
+ExchangeRateRepositoryDep = Annotated[ExchangeRateRepository, Depends(get_exchange_rate_repository)]
+DealRepositoryDep = Annotated[DealRepository, Depends(get_deal_repository)]
 
 
 def get_deal_validator() -> DealValidator:
     return DealValidator()
 
+def get_report_validator() -> ReportValidator:
+    return ReportValidator()
 
 def get_deal_service(
     validator: Annotated[DealValidator, Depends(get_deal_validator)],
@@ -111,13 +97,12 @@ def get_deal_service(
         deal_repository=deal_repository,
     )
 
-
-def get_report_validator() -> ReportValidator:
-    return ReportValidator()
-
+DealServiceDep = Annotated[DealService, Depends(get_deal_service)]
 
 def get_report_service(
     validator: Annotated[ReportValidator, Depends(get_report_validator)],
     deal_repository: DealRepositoryDep,
 ) -> ReportService:
     return ReportService(validator=validator, deal_repository=deal_repository)
+
+ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
