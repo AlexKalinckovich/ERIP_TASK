@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query
 
-from app.api.dependencies import get_report_service
+from app.api.dependencies import get_report_service, XRequestIdDep
 from app.schemas.errors import ErrorResponse, ValidationErrorResponse
 from app.schemas.report import SummaryReportResponse
 from app.services.report_service import ReportService
@@ -39,6 +39,7 @@ ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
 )
 async def get_deals_summary_report(
     service: ReportServiceDep,
+    x_request_id : XRequestIdDep,
     date_from: Annotated[
         datetime,
         Query(
@@ -61,10 +62,6 @@ async def get_deals_summary_report(
             description="Необязательный фильтр по конкретной валюте (ISO 4217)",
         ),
     ] = None,
-    x_request_id: str = Header(
-        None,
-        description="Идентификатор корреляции для сквозного логирования",
-    ),
 ) -> SummaryReportResponse:
 
     return await service.get_deals_summary_report(
